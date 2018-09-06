@@ -1,0 +1,51 @@
+---
+- 
+ hosts: localhost
+ connection: local
+ gather_facts: false
+ tasks:
+   - name: create a security group
+     ec2_group:
+        name: DevAdmin
+        description: Ansible Security Group
+        region: us-west-1
+        rules:
+          - proto: tcp
+            from_port: 80
+            to_port: 80
+            cidr_ip: 0.0.0.0/0
+          - proto: tcp
+            from_port: 22
+            to_port: 22
+            cidr_ip: 0.0.0.0/0
+   - name: creating set of instances
+     ec2:
+        key_name: my_ansible_aws_keypair
+        group: DevAdmin
+        instance_type: t2.micro
+        image: ami-059e7901352ebaef8
+        region: us-west-1
+        wait: true
+        exact_count: 20
+        count_tag:
+             Name: AnsibleNginxWebservers
+        instance_tags:
+             Name: Ansible
+     register: ec2
+     ignore_errors: true
+   - name: Remove tagged EC2 instances
+     ec2:
+        state: running
+        region: "{{ us-west-1 }}"
+        instance_ids: "{{ ec2_id }}"
+        group_id: ""
+     delegate_to: localhost
+   - name: Terminate EC2 instances
+     ec2:
+        state: absent
+        region: "{{ us-west-1 }}"
+        instance_ids: "{{ ec2_id }}"
+        wait: true
+     delegate_to: localhost
+
+...
